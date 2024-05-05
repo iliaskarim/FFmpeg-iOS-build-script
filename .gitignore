@@ -1,6 +1,4 @@
-scratch*
-thin*
-fat*
-FFmpeg.framework
-FFmpeg-*
-.DS_Store
+scratch
+thin
+FFmpeg
+ffmpeg-*
