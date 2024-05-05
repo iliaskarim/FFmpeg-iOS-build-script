@@ -1,4 +1,5 @@
 #!/bin/sh
+set -ex
 
 # directories
 FF_VERSION="4.3.1"
@@ -32,8 +33,12 @@ then
 fi
 
 # avresample
-#CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-avresample"
+CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-avresample"
+CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-postproc --enable-gpl"
 
+
+
+# ARCHS="x86_64"
 ARCHS="arm64 armv7 x86_64 i386"
 
 COMPILE="y"
@@ -71,19 +76,19 @@ then
 		echo 'Trying to install Yasm...'
 		brew install yasm || exit 1
 	fi
-	if [ ! `which gas-preprocessor.pl` ]
-	then
-		echo 'gas-preprocessor.pl not found. Trying to install...'
-		(curl -L https://github.com/libav/gas-preprocessor/raw/master/gas-preprocessor.pl \
-			-o /usr/local/bin/gas-preprocessor.pl \
-			&& chmod +x /usr/local/bin/gas-preprocessor.pl) \
-			|| exit 1
-	fi
+	# if [ ! `which gas-preprocessor.pl` ]
+	# then
+	# 	echo 'gas-preprocessor.pl not found. Trying to install...'
+	# 	(curl -L https://github.com/libav/gas-preprocessor/raw/master/gas-preprocessor.pl \
+	# 		-o /usr/local/bin/gas-preprocessor.pl \
+	# 		&& chmod +x /usr/local/bin/gas-preprocessor.pl) \
+	# 		|| exit 1
+	# fi
 
 	if [ ! -r $SOURCE ]
 	then
 		echo 'FFmpeg source not found. Trying to download...'
-		curl http://www.ffmpeg.org/releases/$SOURCE.tar.bz2 | tar xj \
+		curl https://www.ffmpeg.org/releases/$SOURCE.tar.bz2 | tar xj \
 			|| exit 1
 	fi
 
