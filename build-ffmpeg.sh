@@ -3,48 +3,31 @@ set -ex
 
 # directories
 FF_VERSION="4.3.1"
-#FF_VERSION="snapshot-git"
-if [[ $FFMPEG_VERSION != "" ]]; then
-  FF_VERSION=$FFMPEG_VERSION
-fi
 SOURCE="ffmpeg-$FF_VERSION"
 FAT="FFmpeg-iOS"
-
 SCRATCH="scratch"
-# must be an absolute path
-THIN=`pwd`/"thin"
+THIN=`pwd`/"thin" # must be an absolute path
 
-# absolute path to x264 library
-#X264=`pwd`/fat-x264
-
-#FDK_AAC=`pwd`/../fdk-aac-build-script-for-iOS/fdk-aac-ios
+rm -rf $SCRATCH
+rm -rf $THIN
 
 CONFIGURE_FLAGS="--enable-cross-compile --disable-debug --disable-programs \
                  --disable-doc --enable-pic"
-
-if [ "$X264" ]
-then
-	CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-gpl --enable-libx264"
-fi
-
-if [ "$FDK_AAC" ]
-then
-	CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-libfdk-aac --enable-nonfree"
-fi
-
-# avresample
+# CONFIGURE_FLAGS="$CONFIGURE_FLAGS --disable-audiotoolbox"
 CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-avresample"
-CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-postproc --enable-gpl"
+CONFIGURE_FLAGS="$CONFIGURE_FLAGS --enable-postproc --enable-gpl --disable-asm"
 
-
-
+CONFIGURE_FLAGS="$CONFIGURE_FLAGS --disable-libxcb"
+# ARCHS="arm64"
 # ARCHS="x86_64"
-ARCHS="arm64 armv7 x86_64 i386"
+ARCHS="arm64 x86_64"
 
 COMPILE="y"
 LIPO="y"
 
-DEPLOYMENT_TARGET="8.0"
+# DEPLOYMENT_TARGET="8.0"
+DEPLOYMENT_TARGET="16.4"
+
 
 if [ "$*" ]
 then
@@ -64,27 +47,19 @@ fi
 
 if [ "$COMPILE" ]
 then
-	if [ ! `which yasm` ]
-	then
-		echo 'Yasm not found'
-		if [ ! `which brew` ]
-		then
-			echo 'Homebrew not found. Trying to install...'
-                        ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" \
-				|| exit 1
-		fi
-		echo 'Trying to install Yasm...'
-		brew install yasm || exit 1
-	fi
-	# if [ ! `which gas-preprocessor.pl` ]
+	# if [ ! `which yasm` ]
 	# then
-	# 	echo 'gas-preprocessor.pl not found. Trying to install...'
-	# 	(curl -L https://github.com/libav/gas-preprocessor/raw/master/gas-preprocessor.pl \
-	# 		-o /usr/local/bin/gas-preprocessor.pl \
-	# 		&& chmod +x /usr/local/bin/gas-preprocessor.pl) \
-	# 		|| exit 1
+	# 	echo 'Yasm not found'
+	# 	if [ ! `which brew` ]
+	# 	then
+	# 		echo 'Homebrew not found. Trying to install...'
+    #                     ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" \
+	# 			|| exit 1
+	# 	fi
+	# 	echo 'Trying to install Yasm...'
+	# 	brew install yasm || exit 1
 	# fi
-
+	
 	if [ ! -r $SOURCE ]
 	then
 		echo 'FFmpeg source not found. Trying to download...'
@@ -100,21 +75,23 @@ then
 		cd "$SCRATCH/$ARCH"
 
 		CFLAGS="-arch $ARCH"
-		if [ "$ARCH" = "i386" -o "$ARCH" = "x86_64" ]
-		then
-		    PLATFORM="iPhoneSimulator"
-		    CFLAGS="$CFLAGS -mios-simulator-version-min=$DEPLOYMENT_TARGET"
-		else
-		    PLATFORM="iPhoneOS"
-		    CFLAGS="$CFLAGS -mios-version-min=$DEPLOYMENT_TARGET -fembed-bitcode"
-		    if [ "$ARCH" = "arm64" ]
-		    then
+		# if [ "$ARCH" = "i386" -o "$ARCH" = "x86_64" ]
+		# then
+		#     PLATFORM="iPhoneSimulator"
+		#     CFLAGS="$CFLAGS -mios-simulator-version-min=$DEPLOYMENT_TARGET"
+		# else
+		#     PLATFORM="iPhoneOS"
+		#     CFLAGS="$CFLAGS -mios-version-min=$DEPLOYMENT_TARGET -fembed-bitcode"
+		#     if [ "$ARCH" = "arm64" ]
+		#     then
 		        EXPORT="GASPP_FIX_XCODE5=1"
-		    fi
-		fi
+		#     fi
+		# fi
 
-		XCRUN_SDK=`echo $PLATFORM | tr '[:upper:]' '[:lower:]'`
+		XCRUN_SDK=macosx
+		# XCRUN_SDK=`echo $PLATFORM | tr '[:upper:]' '[:lower:]'`
 		CC="xcrun -sdk $XCRUN_SDK clang"
+		# CC="clang"
 
 		# force "configure" to use "gas-preprocessor.pl" (FFmpeg 3.3)
 		if [ "$ARCH" = "arm64" ]
@@ -145,10 +122,9 @@ then
 		    $CONFIGURE_FLAGS \
 		    --extra-cflags="$CFLAGS" \
 		    --extra-ldflags="$LDFLAGS" \
-		    --prefix="$THIN/$ARCH" \
-		|| exit 1
+		    --prefix="$THIN/$ARCH" &>/dev/null
 
-		make -j3 install $EXPORT || exit 1
+		make -j3 install $EXPORT  >/dev/null 2>build.log
 		cd $CWD
 	done
 fi
